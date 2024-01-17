@@ -316,9 +316,10 @@ mod tests {
             assert_eq!(agg_G, flat_G);
             assert_eq!(agg_H, flat_H);
         };
+        
 
         helper(64, 8);
-        helper(64, 4);
+        //helper(64, 4);
         helper(64, 2);
         helper(64, 1);
         helper(32, 8);

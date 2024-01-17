@@ -11,6 +11,8 @@ use alloc::vec::Vec;
 
 use core::iter;
 
+use std::thread;
+use std::time::Duration;
 use curve25519_dalek::ristretto::{CompressedRistretto, RistrettoPoint};
 use curve25519_dalek::scalar::Scalar;
 use curve25519_dalek::traits::{IsIdentity, VartimeMultiscalarMul};
@@ -21,6 +23,7 @@ use crate::generators::{BulletproofGens, PedersenGens};
 use crate::inner_product_proof::InnerProductProof;
 use crate::transcript::TranscriptProtocol;
 use crate::util;
+use std::time::{Instant};
 
 use rand_core::{CryptoRng, RngCore};
 use serde::de::Visitor;
@@ -639,7 +642,7 @@ mod tests {
 
         // Both prover and verifier have access to the generators and the proof
         let max_bitsize = 64;
-        let max_parties = 8;
+        let max_parties = 1024;
         let pc_gens = PedersenGens::default();
         let bp_gens = BulletproofGens::new(max_bitsize, max_parties);
 
@@ -649,12 +652,18 @@ mod tests {
             let mut rng = rand::thread_rng();
 
             // 0. Create witness data
+            let now: Instant = std::time::Instant::now();
+
             let (min, max) = (0u64, ((1u128 << n) - 1) as u64);
             let values: Vec<u64> = (0..m).map(|_| rng.gen_range(min..max)).collect();
             let blindings: Vec<Scalar> = (0..m).map(|_| Scalar::random(&mut rng)).collect();
+            let elapsed = now.elapsed();
+            println!("create_and_verify---0. Create witness data took {:?} with n = {}, m = {}", elapsed, n, m);
 
             // 1. Create the proof
-            let mut transcript = Transcript::new(b"AggregatedRangeProofTest");
+            let now: Instant = std::time::Instant::now();
+
+            let mut transcript: Transcript = Transcript::new(b"AggregatedRangeProofTest");
             let (proof, value_commitments) = RangeProof::prove_multiple(
                 &bp_gens,
                 &pc_gens,
@@ -665,27 +674,76 @@ mod tests {
             )
             .unwrap();
 
+            let elapsed = now.elapsed();
+            println!("create_and_verify---1. Create the proof took {:?} with n = {}, m = {}", elapsed, n, m);
             // 2. Return serialized proof and value commitments
+            let now: Instant = std::time::Instant::now();
+
             (bincode::serialize(&proof).unwrap(), value_commitments)
+            
         };
 
         // Verifier's scope
         {
             // 3. Deserialize
+            let now: Instant = std::time::Instant::now();
             let proof: RangeProof = bincode::deserialize(&proof_bytes).unwrap();
-
+            let elapsed = now.elapsed();
+            let size = proof_bytes.len();
+            println!("create_and_verify---2. proof_bytes size: {}", size);
+            println!("create_and_verify---3. Deserialize proof took {:?} with n = {}, m = {}", elapsed, n, m);
             // 4. Verify with the same customization label as above
+            let now: Instant = std::time::Instant::now();
+
             let mut transcript = Transcript::new(b"AggregatedRangeProofTest");
 
             assert!(proof
                 .verify_multiple(&bp_gens, &pc_gens, &mut transcript, &value_commitments, n)
                 .is_ok());
+            let elapsed = now.elapsed();
+            println!("create_and_verify---4. Verify proof took {:?} with n = {}, m = {}", elapsed, n, m);
         }
     }
 
     #[test]
     fn create_and_verify_n_32_m_1() {
         singleparty_create_and_verify_helper(32, 1);
+        thread::sleep(Duration::from_secs(5));
+
+        singleparty_create_and_verify_helper(32, 1);
+        thread::sleep(Duration::from_secs(5));
+
+        singleparty_create_and_verify_helper(32, 1);
+        singleparty_create_and_verify_helper(32, 1);
+        singleparty_create_and_verify_helper(32, 1);
+
+
+    }
+    #[test]
+    fn create_and_verify_n_32_mm() {
+        singleparty_create_and_verify_helper(32, 8);
+        thread::sleep(Duration::from_secs(5));
+        singleparty_create_and_verify_helper(32, 16);
+        thread::sleep(Duration::from_secs(5));
+        singleparty_create_and_verify_helper(32, 32);
+        thread::sleep(Duration::from_secs(5));
+
+        singleparty_create_and_verify_helper(32, 64);
+        thread::sleep(Duration::from_secs(5));
+
+        singleparty_create_and_verify_helper(32, 128);
+        thread::sleep(Duration::from_secs(5));
+
+        singleparty_create_and_verify_helper(32, 256);
+        thread::sleep(Duration::from_secs(5));
+
+        singleparty_create_and_verify_helper(32, 512);
+        thread::sleep(Duration::from_secs(5));
+
+        singleparty_create_and_verify_helper(32, 1024);
+        thread::sleep(Duration::from_secs(5));
+
+
     }
 
     #[test]

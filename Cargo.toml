@@ -14,7 +14,7 @@ repository = "https://github.com/zkcrypto/bulletproofs"
 categories = ["cryptography"]
 keywords = ["cryptography", "crypto", "ristretto", "zero-knowledge", "bulletproofs"]
 description = "A pure-Rust implementation of Bulletproofs using Ristretto"
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 curve25519-dalek = { package = "curve25519-dalek-ng", version = "4", default-features = false, features = ["u64_backend", "serde"] }
@@ -51,6 +51,7 @@ name = "range_proof"
 [[test]]
 name = "r1cs"
 required-features = ["yoloproofs"]
+
 
 [[bench]]
 name = "range_proof"
